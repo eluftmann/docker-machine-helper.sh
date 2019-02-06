@@ -51,19 +51,18 @@ Display machine status, IP, memory and shared folders.
 
 ## Installation
 
-1. Copy `docker-machine-helper.sh` script to desired location.
+1. Download `docker-machine-helper.sh` script to a desired location.
 
     ```sh
     $ curl -O https://raw.githubusercontent.com/eluftmann/docker-machine-helper.sh/master/docker-machine-helper.sh && chmod +x docker-machine-helper.sh
     ```
 
-2. Set `MACHINE_NAME` variable inside the script's code.
+2. Edit and review *Machine configuration* variables inside the script's code.
 
     ```sh
-    $ read -p "Machine name: " docker_machine_name && sed -i '' "/^readonly MACHINE_NAME=/ s/\"\"/\"$docker_machine_name\"/g" docker-machine-helper.sh
+    $ vi +/"readonly MACHINE_NAME=" docker-machine-helper.sh
     ```
 
-3. Review *Machine configuration* section in the source code.
 
 ### Optionally add shell shortcut method with auto-completion
 

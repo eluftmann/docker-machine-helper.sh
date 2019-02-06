@@ -76,7 +76,7 @@ popd > /dev/null
 #    behaviour of `docker-machine ssh` command.
 # ============================================================================
 
-readonly MACHINE_NAME=""
+readonly MACHINE_NAME=""  # Required
 readonly MACHINE_MEMORY=1024  # 1 GB of RAM
 readonly MACHINE_DISK_SIZE=$((1024 * 15))  # 15 GB of disk space
 readonly MACHINE_DISABLE_SWAP=true
@@ -202,8 +202,6 @@ arg_() {
 
         utils::echo-header "Restart machine"
         docker-machine::restart ${MACHINE_NAME}
-    else
-        utils::echo-ok "Docker machine \`${MACHINE_NAME}\` already exists"
     fi
 
     if ! docker-machine::in-state ${MACHINE_NAME} "running"; then
