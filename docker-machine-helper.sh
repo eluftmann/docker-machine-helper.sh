@@ -13,8 +13,8 @@
 # `./docker-machine-helper.sh d [docker CLI command]`
 #   Run [docker CLI command] inside the machine.
 #
-# `./docker-machine-helper.sh e <container_name> [command]`
-#   Execute [command] (`/bin/bash` when not provided) inside the <container_name>.
+# `./docker-machine-helper.sh b [command]`
+#   List containers/images and run [command] ('/usr/bin/env bash' when not provided) on selected one.
 #
 # `./docker-machine-helper.sh i`
 #   Display machine information (status, IP, memory, shared folders, etc.).
@@ -145,8 +145,8 @@ main() {
         help|h|--help|-h) arg_help ;;
 
         "")       arg_ ;;
+        bash|b)   arg_bash "${@:1}" ;;
         docker|d) arg_docker "${@:1}" ;;
-        exec|e)   arg_docker_exec "${@:1}" ;;
         info|i)   arg_info ;;
         inspect)  arg_inspect ;;
         rm)       arg_rm ;;
@@ -211,17 +211,44 @@ arg_() {
     docker-machine::ssh ${MACHINE_NAME} "${MACHINE_DEFAULT_SSH_COMMAND}"
 }
 
+arg_bash() {
+    utils::assert-machine-exists ${MACHINE_NAME}
+
+    local command="/usr/bin/env bash"
+    if [[ $# -ge 1 ]]; then
+        command="${@:1}"
+    fi
+
+    local -r docker_objects=$(IFS= docker-machine::exec ${MACHINE_NAME} "
+        docker ps     --format '[CONTAINER] {{.Image}}\t({{.Names}})\t{{.Command}}' 2>/dev/null;
+        docker images --format '[  IMAGE  ] {{.Repository}}:{{.Tag}}'               2>/dev/null;
+    ")
+    [[ -z ${docker_objects} ]] && { utils::echo-missing-resource "No available containers or images"; return 1; }
+
+    # Prepare array of containers and images for select
+    local options=()
+    while read -r line; do options+=("${line}"); done < <(printf "%s\n" "${docker_objects}")
+
+    utils::echo-header "Run '${command}'"
+    select option in "${options[@]}"; do
+        [[ -z ${option} ]] && return 1
+
+        local container_name=$(echo "${option}" | cut -s -f 2 | sed 's/[()]//g')
+        if [[ ! -z ${container_name} ]]; then
+            docker-machine::exec-container ${MACHINE_NAME} ${container_name} ${command}
+        else
+            local image_name=$(echo "${option}" | cut -c 13-)
+            docker-machine::run-image ${MACHINE_NAME} ${image_name} ${command}
+        fi
+
+        break
+    done
+}
+
 arg_docker() {
     utils::assert-machine-exists ${MACHINE_NAME}
 
     docker-machine::exec ${MACHINE_NAME} "docker ${*:1}"
-}
-
-arg_docker_exec() {
-    utils::assert-machine-exists ${MACHINE_NAME}
-
-    [[ $# -lt 1 ]] && { utils::echo-error "Please specify container name"; return 1; }
-    docker-machine::exec-container ${MACHINE_NAME} "${@:1}"
 }
 
 arg_info() {
@@ -262,8 +289,8 @@ arg_help() {
     echo "Setup and run docker-machine."
     echo ""
     echo "Commands:"
+    echo "    bash, b     List containers/images and run given command ('/usr/bin/env bash' by default) on selected one"
     echo "    docker, d   Run docker CLI"
-    echo "    exec, e     Execute command (/bin/bash by default) inside given container"
     echo "    info, i     Get basic information about the machine"
     echo "    inspect     Inspect information about the machine"
     echo "    rm          Remove the machine"
@@ -486,11 +513,22 @@ docker-machine::exec-container() {
     local result=$(docker-machine::exec ${machine_name} "docker ps --format '{{.Names}}' --filter 'name=${container_name}'")
     [[ -z ${result} ]] && { utils::echo-missing-resource "Container '${container_name}' does not exist"; return 1; }
 
-    if [[ -z ${container_command} ]]; then
-        docker-machine::ssh ${machine_name} "docker exec -it ${container_name} /usr/bin/env bash"
-    else
-        docker-machine::ssh ${machine_name} "docker exec -it ${container_name} ${container_command}"
+    docker-machine::ssh ${machine_name} "docker exec -it ${container_name} ${container_command}"
+}
+
+docker-machine::run-image() {
+    local machine_name=${1}
+    local image_name=${2}
+    local image_command=${@:3}
+
+    local volume_arguments=""
+    if [[ ${#MACHINE_SHARED_DIRECTORIES[@]} -gt 0 ]]; then
+        for d in "${MACHINE_SHARED_DIRECTORIES[@]}"; do
+            volume_arguments+=" -v \"${d}\":\"${d}\" "
+        done
     fi
+
+    docker-machine::ssh ${machine_name} "docker run --rm -it ${volume_arguments} ${image_name} ${image_command}"
 }
 
 

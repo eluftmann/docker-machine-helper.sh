@@ -29,11 +29,11 @@ Check the *Machine configuration* section in the source code for more details.
 
     $ ./docker-machine-helper.sh d [docker CLI command]
 
-### Execute command inside the container
+### List containers/images and run command on selected one
 
-    $ ./docker-machine-helper.sh e <container_name> [command]
+    $ ./docker-machine-helper.sh b [command]
 
-When `command` is not provided `/bin/bash` will be used by default.
+When `command` is not provided `/usr/bin/env bash` will be used by default.
 
 ### Display machine information
 
@@ -64,8 +64,8 @@ Display machine status, IP, memory and shared folders.
     ```
 
 
-### Optionally add shell shortcut method with auto-completion
+### Optionally add shell shortcut method
 
-Check `completion.bash` source code for details and customization. It defines additional method which acts as a CLI wrapper for multiple `docker-machine-helper.sh` scripts.
+Check `shortcut.bash` source code for details and customization. It defines additional method which acts as a CLI wrapper for multiple `docker-machine-helper.sh` scripts.
 
-It lets you execute the script from nested directories and autocomplete running containers names when using `exec` / `e` command.
+It lets you execute the script from nested directories or install it when not found.
