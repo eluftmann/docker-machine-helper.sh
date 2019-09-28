@@ -72,6 +72,10 @@ popd > /dev/null
 #  MACHINE_DOCKER_COMPOSE_VERSION - set to empty string if you do not want to
 #    auto-install docker-compose at boot time.
 #
+#  MACHINE_DIVE_VERSION - set to empty string if you do not want to
+#    auto-install dive at boot time.
+#    Project site: https://github.com/wagoodman/dive
+#
 #  MACHINE_DEFAULT_SSH_COMMAND - set to empty string if you want the default
 #    behaviour of `docker-machine ssh` command.
 # ============================================================================
@@ -84,6 +88,7 @@ readonly MACHINE_SHARED_DIRECTORIES=(
     "${BASE_DIR}"
 )
 readonly MACHINE_DOCKER_COMPOSE_VERSION="1.23.2"
+readonly MACHINE_DIVE_VERSION="0.8.1"
 readonly MACHINE_DEFAULT_SSH_COMMAND="cd ${BASE_DIR}; exec \$SHELL --login"
 
 
@@ -194,6 +199,11 @@ arg_() {
         if [[ ! -z ${MACHINE_DOCKER_COMPOSE_VERSION} ]]; then
             utils::echo-header "Autoinstall docker-compose"
             docker-machine::autoinstall-docker-compose ${MACHINE_NAME} ${MACHINE_DOCKER_COMPOSE_VERSION}
+        fi
+
+        if [[ ! -z ${MACHINE_DIVE_VERSION} ]]; then
+            utils::echo-header "Autoinstall dive"
+            docker-machine::autoinstall-dive ${MACHINE_NAME} ${MACHINE_DIVE_VERSION}
         fi
 
         utils::echo-header "\`${BOOT2DOCKER_BOOTLOCAL}\` configuration"
@@ -476,6 +486,15 @@ docker-machine::autoinstall-docker-compose() {
     local docker_compose_install_cmd="curl -L https://github.com/docker/compose/releases/download/${docker_compose_version}/docker-compose-\`uname -s\`-\`uname -m\` -o /usr/local/bin/docker-compose && chmod +x /usr/local/bin/docker-compose"
 
     docker-machine::exec ${machine_name} "echo \"${docker_compose_install_cmd}\" | sudo tee -a ${BOOT2DOCKER_BOOTLOCAL}" > /dev/null 2>&1
+}
+
+docker-machine::autoinstall-dive() {
+    local machine_name=${1}
+    local dive_version=${2}
+    local dive_tmp_file="/tmp/dive.rpm"
+    local dive_install_cmd="wget -qO ${dive_tmp_file} https://github.com/wagoodman/dive/releases/download/v${dive_version}/dive_${dive_version}_linux_amd64.rpm && rpm -i ${dive_tmp_file} && rm ${dive_tmp_file}"
+
+    docker-machine::exec ${machine_name} "echo \"${dive_install_cmd}\" | sudo tee -a ${BOOT2DOCKER_BOOTLOCAL}" > /dev/null 2>&1
 }
 
 

@@ -20,6 +20,7 @@ With default configuration it will:
 - Create and setup docker-machine instance with configured name (if it does not exist).
 - Add script's base directory as shared folder mapped 1 <-> 1 (e.g. `/Users/user/project` will be accessible under `/Users/user/project` inside the virtual machine).
 - Install Docker Compose.
+- Install [dive](https://github.com/wagoodman/dive).
 - Disable swap memory.
 - SSH into the machine and set default shared folder as current working directory.
 
